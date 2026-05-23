@@ -7,7 +7,6 @@
 #include <stdio.h>
 
 extern Texture textures[RES_HALO_EXPLOSION2];
-extern Mix_Chunk* sounds[AUDIO_SOUND_SIZE];
 
 Weapon weapons[WEAPONS_SIZE];
 void initWeapon(Weapon* self, int birthTextureId, int deathTextureId,

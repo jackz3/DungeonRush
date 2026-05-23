@@ -1,8 +1,15 @@
 #ifndef SNAKE_TYPES_
 #define SNAKE_TYPES_
-#include <SDL.h>
-#include <SDL_mixer.h>
+#include <SDL3/SDL.h>
 #include <stdbool.h>
+
+#ifndef ENABLE_AUDIO
+#define ENABLE_AUDIO 0
+#endif
+
+#ifndef ENABLE_LAN
+#define ENABLE_LAN 0
+#endif
 
 #define TEXT_LEN 1024
 #define POSITION_BUFFER_SIZE 256
@@ -42,7 +49,7 @@ typedef struct {
   int duration, currentFrame;
   int x, y;
   double angle;
-  SDL_RendererFlip flip;
+  SDL_FlipMode flip;
   At at;       // How this animation should be aligned according to (x, y)
   void* bind;  // Points to a Sprite struct. The animation should use the
                // sprite's position
@@ -66,9 +73,9 @@ void copyEffect(const Effect* src, Effect* dest);
 
 void initAnimation(Animation* self, Texture* origin, const Effect* effect,
                    LoopType lp, int duration, int x, int y,
-                   SDL_RendererFlip flip, double angle, At at);
+       SDL_FlipMode flip, double angle, At at);
 Animation* createAnimation(Texture* origin, const Effect* effect, LoopType lp,
-                           int duration, int x, int y, SDL_RendererFlip flip,
+         int duration, int x, int y, SDL_FlipMode flip,
                            double angle, At at);
 void destroyAnimation(Animation* self);
 void copyAnimation(Animation* src, Animation* dest);

@@ -1,6 +1,6 @@
 #include "game.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -988,7 +988,7 @@ void pauseGame() {
   SDL_Event e;
   for (bool quit = 0; !quit;) {
     while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT || e.type == SDL_KEYDOWN) {
+      if (e.type == SDL_EVENT_QUIT || e.type == SDL_EVENT_KEY_DOWN) {
         quit = true;
         break;
       }
@@ -1018,16 +1018,16 @@ int arrowsToDirection(int keyValue) {
 
 int wasdToDirection(int keyValue) {
   switch (keyValue) {
-    case SDLK_a:
+    case SDLK_A:
       return LEFT;
       break;
-    case SDLK_d:
+    case SDLK_D:
       return RIGHT;
       break;
-    case SDLK_w:
+    case SDLK_W:
       return UP;
       break;
-    case SDLK_s:
+    case SDLK_S:
       return DOWN;
       break;
   }
@@ -1038,11 +1038,11 @@ bool handleLocalKeypress() {
   static SDL_Event e;
   bool quit = false;
   while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_QUIT) {
+    if (e.type == SDL_EVENT_QUIT) {
       quit = true;
       setTerm(GAME_OVER);
-    } else if (e.type == SDL_KEYDOWN) {
-      int keyValue = e.key.keysym.sym;
+    } else if (e.type == SDL_EVENT_KEY_DOWN) {
+      int keyValue = e.key.key;
       if (keyValue == SDLK_ESCAPE) pauseGame();
       for (int id = 0; id <= 1 && id < playersCount; id++) {
         Snake* player = spriteSnake[id];

@@ -1,7 +1,7 @@
 #include "ui.h"
 
-#include <SDL.h>
-#include <SDL_mixer.h>
+#include <SDL3/SDL.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,12 +32,12 @@ bool moveCursor(int optsNum) {
   SDL_Event e;
   bool quit = false;
   while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_QUIT) {
+    if (e.type == SDL_EVENT_QUIT) {
       quit = true;
       cursorPos = optsNum;
       return quit;
-    } else if (e.type == SDL_KEYDOWN) {
-      int keyValue = e.key.keysym.sym;
+    } else if (e.type == SDL_EVENT_KEY_DOWN) {
+      int keyValue = e.key.key;
       switch (keyValue) {
         case SDLK_UP:
           cursorPos--;
@@ -134,7 +134,8 @@ char* inputUi() {
   Text* text = NULL;
   Text* placeholder = createText("Enter IP", WHITE);
 
-  SDL_StartTextInput();
+  extern SDL_Window* window;
+  SDL_StartTextInput(window);
   SDL_Event e;
   bool quit = false;
   bool finished = false;
@@ -154,25 +155,25 @@ char* inputUi() {
     clearRenderer();
 
     while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT ||
-          (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
+      if (e.type == SDL_EVENT_QUIT ||
+          (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)) {
         quit = true;
         break;
-      } else if (e.type == SDL_KEYDOWN) {
-        if (e.key.keysym.sym == SDLK_BACKSPACE) {
+      } else if (e.type == SDL_EVENT_KEY_DOWN) {
+        if (e.key.key == SDLK_BACKSPACE) {
           if (retLen) ret[--retLen] = 0;
-        } else if (e.key.keysym.sym == SDLK_RETURN) {
+        } else if (e.key.key == SDLK_RETURN) {
           finished = true;
           break;
         }
-      } else if (e.type == SDL_TEXTINPUT) {
+      } else if (e.type == SDL_EVENT_TEXT_INPUT) {
         strcpy(ret + retLen, e.text.text);
         retLen += strlen(e.text.text);
       }
     }
   }
 
-  SDL_StopTextInput();
+  SDL_StopTextInput(window);
   destroyText(placeholder);
   destroyText(text);
 

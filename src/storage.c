@@ -1,5 +1,6 @@
 #include "storage.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 void readScore(FILE* f, Score* score) {

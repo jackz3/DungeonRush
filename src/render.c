@@ -1,6 +1,6 @@
 #include "render.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -38,7 +38,7 @@ LinkList animationsList[ANIMATION_LINK_LIST_NUM];
 Animation* countDownBar;
 void blacken(int duration) {
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-  SDL_Rect rect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+  SDL_FRect rect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
   SDL_SetRenderDrawColor(renderer, RENDER_BG_COLOR, 85);
   for (int i = 0; i < duration; i++) {
     SDL_RenderFillRect(renderer, &rect);
@@ -100,15 +100,15 @@ void renderCstrText(const char* str, int x, int y, double scale) {
   renderText(text, x, y, scale);
 }
 void renderText(const Text* text, int x, int y, double scale) {
-  SDL_Rect dst = {x, y, (int)(text->width * scale + 0.5),
-                  (int)(text->height * scale + 0.5)};
-  SDL_RenderCopy(renderer, text->origin, NULL, &dst);
+  SDL_FRect dst = {x, y, (float)(text->width * scale + 0.5),
+                   (float)(text->height * scale + 0.5)};
+  SDL_RenderTexture(renderer, text->origin, NULL, &dst);
 }
 SDL_Point renderCenteredText(const Text* text, int x, int y, double scale) {
   int width = text->width * scale + 0.5;
   int height = text->height * scale + 0.5;
-  SDL_Rect dst = {x - width / 2, y - height / 2, width, height};
-  SDL_RenderCopy(renderer, text->origin, NULL, &dst);
+  SDL_FRect dst = {x - width / 2, y - height / 2, width, height};
+  SDL_RenderTexture(renderer, text->origin, NULL, &dst);
   return (SDL_Point){x - width / 2, y - height / 2};
 }
 void unsetEffect(Texture* texture) {
@@ -195,12 +195,12 @@ void renderAnimation(Animation* ani) {
   updateAnimationFromBind(ani);
   int width = ani->origin->width;
   int height = ani->origin->height;
-  SDL_Point poi = {ani->origin->width, ani->origin->height / 2};
+  SDL_FPoint poi = {ani->origin->width, ani->origin->height / 2};
   if (ani->scaled) {
     width *= SCALE_FACTOR;
     height *= SCALE_FACTOR;
   }
-  SDL_Rect dst = {ani->x - width / 2, ani->y - height, width, height};
+  SDL_FRect dst = {ani->x - width / 2, ani->y - height, width, height};
   if (ani->at == AT_TOP_LEFT) {
     dst.x = ani->x;
     dst.y = ani->y;
@@ -224,8 +224,10 @@ void renderAnimation(Animation* ani) {
     double interval = (double)ani->duration / ani->origin->frames;
     stage = ani->currentFrame / interval;
   }
-  SDL_RenderCopyEx(renderer, ani->origin->origin, &(ani->origin->crops[stage]),
-                   &dst, ani->angle, &poi, ani->flip);
+  SDL_FRect src = {ani->origin->crops[stage].x, ani->origin->crops[stage].y,
+                   ani->origin->crops[stage].w, ani->origin->crops[stage].h};
+  SDL_RenderTextureRotated(renderer, ani->origin->origin, &src, &dst,
+                           ani->angle, &poi, ani->flip);
   if (ani->effect) unsetEffect(ani->origin);
 #ifdef DBG_CROSS
   if (ani->at == AT_BOTTOM_CENTER) {
@@ -235,14 +237,16 @@ void renderAnimation(Animation* ani) {
 
     tmp = getSpriteBoundBox(&fake);
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 200);
-    SDL_RenderDrawRect(renderer, &tmp);
+    SDL_FRect bound = {tmp.x, tmp.y, tmp.w, tmp.h};
+    SDL_RenderRect(renderer, &bound);
 
     tmp = getSpriteFeetBox(&fake);
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 200);
-    SDL_RenderDrawRect(renderer, &tmp);
+    SDL_FRect feet = {tmp.x, tmp.y, tmp.w, tmp.h};
+    SDL_RenderRect(renderer, &feet);
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 200);
-    SDL_RenderDrawRect(renderer, &dst);
+    SDL_RenderRect(renderer, &dst);
   }
 #endif
 }
@@ -253,7 +257,7 @@ void pushAnimationToRender(int id, Animation* ani) {
 Animation* createAndPushAnimation(LinkList* list, Texture* texture,
                                   const Effect* effect, LoopType lp,
                                   int duration, int x, int y,
-                                  SDL_RendererFlip flip, double angle, At at) {
+                                  SDL_FlipMode flip, double angle, At at) {
   Animation* ani =
       createAnimation(texture, effect, lp, duration, x, y, flip, angle, at);
   LinkNode* node = createLinkNode(ani);
@@ -329,10 +333,10 @@ void renderSnakeHp(Snake* snake) {
       SDL_SetRenderDrawColor(renderer, r, g, b, 255);
       int width = RENDER_HP_BAR_WIDTH;
       int spriteHeight = sprite->ani->origin->height * SCALE_FACTOR;
-      SDL_Rect bar = {sprite->x - UNIT / 2 + (UNIT - width) / 2,
-                      sprite->y - spriteHeight - RENDER_HP_BAR_HEIGHT * (i + 1),
-                      width * MIN(1, percent), RENDER_HP_BAR_HEIGHT};
-      SDL_RenderDrawRect(renderer, &bar);
+      SDL_FRect bar = {sprite->x - UNIT / 2 + (UNIT - width) / 2,
+                       sprite->y - spriteHeight - RENDER_HP_BAR_HEIGHT * (i + 1),
+                       width * MIN(1, percent), RENDER_HP_BAR_HEIGHT};
+      SDL_RenderRect(renderer, &bar);
     }
   }
 }
@@ -342,7 +346,7 @@ void renderHp() {
 void renderCenteredTextBackground(Text* text, int x, int y, double scale) {
   int width = text->width * scale + 0.5;
   int height = text->height * scale + 0.5;
-  SDL_Rect dst = {x - width / 2, y - height / 2, width, height};
+  SDL_FRect dst = {x - width / 2, y - height / 2, width, height};
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 200);
   SDL_RenderFillRect(renderer, &dst);

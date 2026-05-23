@@ -1,7 +1,13 @@
 #ifndef SNAKE__NET_H_
 #define SNAKE__NET_H_
 
-#include <SDL_net.h>
+#include <SDL3/SDL.h>
+
+#if ENABLE_LAN
+#include <SDL3_net/SDL_net.h>
+#else
+typedef void* TCPsocket;
+#endif
 
 #define LAN_LISTEN_PORT 21739
 #define LAN_SEED_MASK 0x00ffffff

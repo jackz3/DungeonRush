@@ -1,5 +1,8 @@
 #include "bullet.h"
 
+#include <math.h>
+#include <stdlib.h>
+
 #include "helper.h"
 
 Bullet* createBullet(Snake* owner, Weapon* parent, int x, int y, double rad,

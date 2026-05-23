@@ -11,8 +11,10 @@
 
 #define CASSERT(EXPRESSION) switch (0) {case 0: case (EXPRESSION):;}
 
-TCPsocket lanServerSocket;
-TCPsocket lanClientSocket;
+TCPsocket lanServerSocket = NULL;
+TCPsocket lanClientSocket = NULL;
+
+#if ENABLE_LAN
 SDLNet_SocketSet socketSet;
 
 static void CHECK() {
@@ -91,8 +93,8 @@ void hostGame() {
     SDL_RenderPresent(renderer);
     bool quit = false;
     while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT || 
-          (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
+      if (e.type == SDL_EVENT_QUIT || 
+          (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)) {
         quit = true;
       }
     }
@@ -161,8 +163,8 @@ void joinGame(const char* hostname, Uint16 port) {
   unsigned frameCount = 0;
   while (!lanClientSocket) {
     while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT || 
-          (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
+      if (e.type == SDL_EVENT_QUIT || 
+          (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE)) {
         quit = true;
       }
     }
@@ -206,3 +208,28 @@ void joinGame(const char* hostname, Uint16 port) {
   if (lanClientSocket) SDLNet_TCP_Close(lanClientSocket);
   lanClientSocket = NULL;
 }
+
+#else
+
+void hostGame() {}
+
+void joinGame(const char* hostname, Uint16 port) {
+  (void)hostname;
+  (void)port;
+}
+
+void sendPlayerMovePacket(unsigned playerId, unsigned direction) {
+  (void)playerId;
+  (void)direction;
+}
+
+void sendGameOverPacket(unsigned playerId) {
+  (void)playerId;
+}
+
+unsigned recvLanPacket(LanPacket* dest) {
+  (void)dest;
+  return 0;
+}
+
+#endif

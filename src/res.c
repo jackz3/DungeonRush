@@ -1,9 +1,13 @@
 #include "res.h"
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <SDL_mixer.h>
-#include <SDL_net.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
+#if ENABLE_AUDIO
+#include <SDL3_mixer/SDL_mixer.h>
+#endif
+#if ENABLE_LAN
+#include <SDL3_net/SDL_net.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -84,66 +88,96 @@ Effect effects[EFFECTS_SIZE];
 
 Sprite commonSprites[COMMON_SPRITE_SIZE];
 
-Mix_Music *mainTitle;
-Mix_Music *bgms[AUDIO_BGM_SIZE];
+#if ENABLE_AUDIO
+MIX_Mixer *mixer;
+MIX_Track *bgmTrack;
+MIX_Audio *mainTitle;
+MIX_Audio *bgms[AUDIO_BGM_SIZE];
 int soundsCount;
-Mix_Chunk *sounds[AUDIO_SOUND_SIZE];
+MIX_Audio *sounds[AUDIO_SOUND_SIZE];
+#else
+void *mixer;
+void *bgmTrack;
+void *mainTitle;
+void *bgms[AUDIO_BGM_SIZE];
+int soundsCount;
+void *sounds[AUDIO_SOUND_SIZE];
+#endif
 
 bool init() {
   // Initialization flag
   bool success = true;
 
   // Initialize SDL
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+  if (!SDL_Init(SDL_INIT_VIDEO | (ENABLE_AUDIO ? SDL_INIT_AUDIO : 0))) {
     printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
     success = false;
   } else {
     // Create window
-    window = SDL_CreateWindow("Dungeon Rush "VERSION_STRING, SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
-                              SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("Dungeon Rush "VERSION_STRING, SCREEN_WIDTH,
+                              SCREEN_HEIGHT, 0);
     if (window == NULL) {
       printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
       success = false;
     } else {
       // Software Render
 #ifndef SOFTWARE_ACC
-      renderer = SDL_CreateRenderer(
-          window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+      renderer = SDL_CreateRenderer(window, NULL);
 #endif
 #ifdef SOFTWARE_ACC
       printf("define software acc\n");
-      renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+      renderer = SDL_CreateRenderer(window, "software");
 #endif
       if (renderer == NULL) {
         printf("Renderer could not be created! SDL Error: %s\n",
                SDL_GetError());
         success = false;
       } else {
+        SDL_SetRenderVSync(renderer, 1);
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        // Initialize PNG loading
-        int imgFlags = IMG_INIT_PNG;
-        if (!(IMG_Init(imgFlags) & imgFlags)) {
-          printf("SDL_image could not initialize! SDL_image Error: %s\n",
-                 IMG_GetError());
-          success = false;
-        }
         // Initialize SDL_ttf
-        if (TTF_Init() == -1) {
+         if (!TTF_Init()) {
           printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n",
-                 TTF_GetError());
+                 SDL_GetError());
           success = false;
         }
         //Initialize SDL_mixer
-        if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 ) {
-          printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
+#if ENABLE_AUDIO
+        if (!MIX_Init()) {
+          printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n",
+                 SDL_GetError());
           success = false;
+        } else {
+          SDL_AudioSpec audioSpec;
+
+          SDL_zero(audioSpec);
+          audioSpec.format = SDL_AUDIO_F32;
+          audioSpec.channels = 2;
+          audioSpec.freq = 44100;
+
+          mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                                        &audioSpec);
+          if (mixer == NULL) {
+            printf("SDL_mixer could not create a mixer! SDL_mixer Error: %s\n",
+                   SDL_GetError());
+            success = false;
+          } else {
+            bgmTrack = MIX_CreateTrack(mixer);
+            if (bgmTrack == NULL) {
+              printf("SDL_mixer could not create a BGM track! SDL_mixer Error: %s\n",
+                     SDL_GetError());
+              success = false;
+            }
+          }
         }
+#endif
         //Initialize SDL_net
+#if ENABLE_LAN
         if (SDLNet_Init() == -1) {
           printf("SDL_Net_Init: %s\n", SDLNet_GetError());
           success = false;
         }
+#endif
       }
     }
   }
@@ -157,7 +191,7 @@ SDL_Texture* loadSDLTexture(const char* path) {
   SDL_Surface* loadedSurface = IMG_Load(path);
   if (loadedSurface == NULL) {
     printf("Unable to load image %s! SDL_image Error: %s\n", path,
-           IMG_GetError());
+           SDL_GetError());
   } else {
     // Create texture from surface pixels
     newTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
@@ -167,7 +201,7 @@ SDL_Texture* loadSDLTexture(const char* path) {
     }
 
     // Get rid of old loaded surface
-    SDL_FreeSurface(loadedSurface);
+    SDL_DestroySurface(loadedSurface);
   }
 
   return newTexture;
@@ -213,10 +247,11 @@ bool loadTileset(const char* path, SDL_Texture* origin) {
 }
 bool loadAudio() {
   bool success = true;
+#if ENABLE_AUDIO
   for (int i = 0; i < bgmNums; i++) {
-    bgms[i] = Mix_LoadMUS(bgmsPath[i]);
+    bgms[i] = MIX_LoadAudio(mixer, bgmsPath[i], false);
     success &= bgms[i] != NULL;
-    if (!bgms[i]) printf("Failed to load %s: SDL_mixer Error: %s\n", bgmsPath[i], Mix_GetError());
+    if (!bgms[i]) printf("Failed to load %s: SDL_mixer Error: %s\n", bgmsPath[i], SDL_GetError());
     #ifdef DBG
     else printf("BGM %s loaded\n", bgmsPath[i]);
     #endif
@@ -225,15 +260,18 @@ bool loadAudio() {
   char buf[PATH_LEN], path[PATH_LEN<<1];
   while (~fscanf(f, "%s", buf)) {
     sprintf(path, "%s%s", soundsPathPrefix, buf);
-    sounds[soundsCount] = Mix_LoadWAV(path);
+    sounds[soundsCount] = MIX_LoadAudio(mixer, path, false);
     success &= sounds[soundsCount] != NULL;
-    if (!sounds[soundsCount]) printf("Failed to load %s: : SDL_mixer Error: %s\n", path, Mix_GetError());
+    if (!sounds[soundsCount]) printf("Failed to load %s: SDL_mixer Error: %s\n", path, SDL_GetError());
     #ifdef DBG
     else printf("Sound #%d: %s\n", soundsCount, path);
     #endif
     soundsCount++;
   }
   fclose(f);
+#else
+  soundsCount = 0;
+#endif
   return success;
 }
 bool loadMedia() {
@@ -253,7 +291,7 @@ bool loadMedia() {
   // Open the font
   font = TTF_OpenFont(fontPath, FONT_SIZE);
   if (font == NULL) {
-    printf("Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError());
+    printf("Failed to load lazy font! SDL_ttf Error: %s\n", SDL_GetError());
     success = false;
   } else {
     if (!loadTextset()) {
@@ -286,9 +324,24 @@ void cleanup() {
 
   // Quit SDL subsystems
   TTF_Quit();
-  IMG_Quit();
-  Mix_CloseAudio();
+#if ENABLE_AUDIO
+  for (int i = 0; i < bgmNums; i++) {
+    MIX_DestroyAudio(bgms[i]);
+    bgms[i] = NULL;
+  }
+  for (int i = 0; i < soundsCount; i++) {
+    MIX_DestroyAudio(sounds[i]);
+    sounds[i] = NULL;
+  }
+  MIX_DestroyTrack(bgmTrack);
+  bgmTrack = NULL;
+  MIX_DestroyMixer(mixer);
+  mixer = NULL;
+  MIX_Quit();
+#endif
+#if ENABLE_LAN
   SDLNet_Quit();
+#endif
   SDL_Quit();
 }
 void initCommonEffects() {

@@ -1,6 +1,6 @@
 #ifndef SNAKE_RENDER_H_
 #define SNAKE_RENDER_H_
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include "types.h"
 #include "player.h"
 #include "sprite.h"
@@ -36,7 +36,7 @@ void unsetEffect(Texture* texture);
 Animation* createAndPushAnimation(LinkList* list, Texture* texture,
                                   const Effect* effect, LoopType lp,
                                   int duration, int x, int y,
-                                  SDL_RendererFlip flip, double angle, At at);
+                                  SDL_FlipMode flip, double angle, At at);
 void updateAnimationLinkList(LinkList* list);
 void renderAnimationLinkList(LinkList* list);
 void updateAnimationOfSprite(Sprite* self);

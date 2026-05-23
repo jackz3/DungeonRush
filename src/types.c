@@ -1,6 +1,6 @@
 #include "types.h"
 
-#include <SDL_ttf.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,16 +38,16 @@ bool initText(Text* self, const char* str, SDL_Color color) {
   self->color = color;
   strcpy(self->text, str);
   // Render text surface
-  SDL_Surface* textSurface = TTF_RenderText_Solid(font, str, color);
+  SDL_Surface* textSurface = TTF_RenderText_Solid(font, str, 0, color);
   if (textSurface == NULL) {
     printf("Unable to render text surface! SDL_ttf Error: %s\n",
-           TTF_GetError());
+           SDL_GetError());
   } else {
     // Create texture from surface pixels
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, textSurface);
     self->width = textSurface->w;
     self->height = textSurface->h;
-    SDL_FreeSurface(textSurface);
+    SDL_DestroySurface(textSurface);
     if (texture == NULL) {
       printf("Unable to create texture from rendered text! SDL Error: %s\n",
              SDL_GetError());
@@ -94,7 +94,7 @@ void destroyEffect(Effect* self) {
 
 void initAnimation(Animation* self, Texture* origin, const Effect* effect,
                    LoopType lp, int duration, int x, int y,
-                   SDL_RendererFlip flip, double angle, At at) {
+                   SDL_FlipMode flip, double angle, At at) {
   // will deep copy effect
   self->origin = origin;
   if (effect) {
@@ -117,7 +117,7 @@ void initAnimation(Animation* self, Texture* origin, const Effect* effect,
   self->lifeSpan = duration;
 }
 Animation* createAnimation(Texture* origin, const Effect* effect, LoopType lp,
-                           int duration, int x, int y, SDL_RendererFlip flip,
+                           int duration, int x, int y, SDL_FlipMode flip,
                            double angle, At at) {
   Animation* self = malloc(sizeof(Animation));
   initAnimation(self, origin, effect, lp, duration, x, y, flip, angle, at);

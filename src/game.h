@@ -43,7 +43,7 @@ void updateAnimationOfBlock(Block* self);
 Animation* createAndPushAnimation(LinkList* list, Texture* texture,
                                   const Effect* effect, LoopType lp,
                                   int duration, int x, int y,
-                                  SDL_RendererFlip flip, double angle, At at);
+                                  SDL_FlipMode flip, double angle, At at);
 bool isPlayer(Snake* snake);
 bool crushVerdict(Sprite* sprite, bool loose, bool useAnimationBox);
 void moveSprite(Sprite*, int);
